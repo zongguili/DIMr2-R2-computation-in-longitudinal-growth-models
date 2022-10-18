@@ -1,29 +1,82 @@
-*r2lmer*, *r2lme*, and *r2lmeRmat* are functions to compute the $R^2$ statistic in longitidual growth models (LGMs) or multilevel models (MLMs). These three functions are used along with model estimation functions *lme4* or *nlme* in R.
+# DIMr2
+
+The functions *r2lmer*, *r2lme*, and *r2lmeRmat* compute $R^2$ statistics using the DIM (dummy indicator matrices) method in longitudinal growth models and multilevel models (Li and Ryu, manuscript under review). The functions are used along with *lme4* or *nlme* functions in R.
+
+Li, Z. and Ryu, E. (manuscript under review). Effect Size Measures for Longitudinal Growth Models.
 
 # Description
-Note that to acquire the $R^2$, researchers need to estimate the longitudinal growth model by either *lmer* function from *lme4* package (lme4::lmer) or *lme* function from *nlme* package (nlme::lme) priorly. *r2lmer* and *r2lme* are functions used for computing $R^2$ incorporate constant level-1 residual variance with priorly applied model estimation functions *lmer* and *lme*, respectively. *r2lmeRmat* is used for computing weighted and unweighted $R^2$s incorporate different level-1 residual variance structures with model estimation function *lme*.
+The model should be estimated using *lmer* function from *lme4* package (lme4::lmer) before using the function *r2lmer*. The model should be estimated using *lme* function from *nlme* package (nlme::lme) before using the functions *r2lme* and *r2lmeRmat*. The function *r2lmeRmat* may be used for models with one of the following level-1 residual covariance structure: Constant (single constant variance $\sigma^2$), Diag (diagonal structure with heterogeneous variances), CS (compound symmetry), CSH (compound symmetry with heterogeneous variances), AR(1) (first-order autoregressive), ARH(1) (first-order autoregressive with heterogeneous variances). 
 
-The input of the three functions are straightforward which are: a) **model**: model specification that used in the prior model estimation function, b) **effectf**: the variables that corresponding to interested fixed effect, and c) **effectr**: the variables that corresponding to interested random effect. The output of *r2lmer* and *r2lme* functions give the variance partitioning and $R^2$ for selected effects. The function *r2lmeRmat* output the number of observations at each time point, the variance partitioning with and without weights applied, and the $R^2$ for selected effects with and without weights applied. Note that, if homogeneous variance is specified across time (i.e., single constant variance, CS, and AR1), there is no output of weighted variance partitioning and weighted $R^2$.
+All three functions require three input arguments:\
+(a) model: *lmer* or *lme* output object for the estimated model,\
+(b) effectf: selected fixed effects for which the $R^2$ is computed (effectf <- NULL if no fixed effect is selected), and\
+(c) effectr: selected random effects for which the $R^2$ is computed (effectr <- NULL if no random effect is selected; effectr <- “(Intercept)” to select the random intercept). 
 
 # Example
 
-Following are two examples of using *r2lmer* and *r2lme*.
-
+Following are examples of using *r2lmer*, *r2lme*, and *r2lmeRmat*.
+## *r2lmer*
 ```{r,r2lmer, echo=T}
 library(lme4)
-m<-lmer(formula=y~time+(1+time|id),data=data)
+# Estimate the model: 
+m<-lmer(formula=y ~ time+w2+(1+time|CHILDID),data=data)
+
+# R^2 for the fixed and random effect of time
 effectf<-c("time")
 effectr<-c("time")
 r2lmer(m,effectf,effectr)
 
+# R^2 for the fixed effect of level-1 covariate w2
+effectf<-c("w2")
+effectr<-NULL
+r2lmer(m,effectf,effectr)
 ```
-
+## *r2lme*
 ```{r,r2lme, echo=T}
 library(nlme)
-m<-lme(y~time,random=~1+time|id,data=data)
-effectf<-c("time")
-effectr<-c("(Intercept)")
+# Estimate the model:
+m<-lme(y ~ time+w2+z1+time*z1,random = ~ 1+time| CHILDID, data =data)
+
+# R^2 for the level-2 random effects (random intercept and random slope of time)
+effectf<-NULL
+effectr<-c("(Intercept)","time")
 r2lme(m,effectf,effectr)
 
+# R^2 for the effects of cross-level interaction time and z1
+effectf<-c("time:z1")
+effectr<-NULL
+r2lme(m,effectf,effectr)
 ```
 
+## *r2lmeRmat*
+```{r,r2lme, echo=T}
+library(nlme)
+# Estimate the model with constant level-1 residual covariance structure:
+m<-lme(y ~ time+w2+z1+time*z1,random = ~ 1+time| CHILDID, data =data)
+
+# R^2 for the level-2 random effects (random intercept and random slope of time)
+effectf<-NULL
+effectr<-c("(Intercept)","time")
+r2lmeRmat(m,effectf,effectr)
+
+# Estimate the model with CS level-1 residual covariance structure: 
+m_CS<-lme(y ~ time+w2, random = ~ 1+time| CHILDID,
+    correlation = corCompSymm(form = ~time|CHILDID),
+    data =data)
+    
+# R^2 for the fixed effect of time
+effectf<-c("time")
+effectr<-NULL
+r2lmeRmat(m_CS,effectf,effectr)
+
+# Estimate the model with ARH(1) level-1 residual covariance structure:
+m_ARH<-lme(y ~ time+w2, random = ~ 1+time| CHILDID,
+    correlation = corAR1(form = ~ time|CHILDID),
+    weights = varIdent(form = ~ 1 |time),
+    data = data)
+    
+# R^2 for the fixed effect of time
+effectf<-c("time")
+effectr<-NULL
+r2lmeRmat(m_ARH,effectf,effectr)
+```
