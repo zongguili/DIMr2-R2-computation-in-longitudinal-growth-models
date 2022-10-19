@@ -19,7 +19,7 @@ Following are examples of using *r2lmer*, *r2lme*, and *r2lmeRmat*.
 ```{r,r2lmer, echo=T}
 library(lme4)
 # Estimate the model: 
-m<-lmer(formula=y ~ time+w2+(1+time|CHILDID),data=data)
+m<-lmer(formula=y ~ time+w2+(1+time|id),data=data)
 
 # R^2 for the fixed and random effect of time
 effectf<-c("time")
@@ -35,7 +35,7 @@ r2lmer(m,effectf,effectr)
 ```{r,r2lme, echo=T}
 library(nlme)
 # Estimate the model:
-m<-lme(y ~ time+w2+z1+time*z1,random = ~ 1+time| CHILDID, data =data)
+m<-lme(y ~ time+w2+z1+time*z1,random = ~ 1+time| id, data =data)
 
 # R^2 for the level-2 random effects (random intercept and random slope of time)
 effectf<-NULL
@@ -52,7 +52,7 @@ r2lme(m,effectf,effectr)
 ```{r,r2lme, echo=T}
 library(nlme)
 # Estimate the model with constant level-1 residual covariance structure:
-m<-lme(y ~ time+w2+z1+time*z1,random = ~ 1+time| CHILDID, data =data)
+m<-lme(y ~ time+w2+z1+time*z1,random = ~ 1+time| id, data =data)
 
 # R^2 for the level-2 random effects (random intercept and random slope of time)
 effectf<-NULL
@@ -60,8 +60,8 @@ effectr<-c("(Intercept)","time")
 r2lmeRmat(m,effectf,effectr)
 
 # Estimate the model with CS level-1 residual covariance structure: 
-m_CS<-lme(y ~ time+w2, random = ~ 1+time| CHILDID,
-    correlation = corCompSymm(form = ~time|CHILDID),
+m_CS<-lme(y ~ time+w2, random = ~ 1+time| id,
+    correlation = corCompSymm(form = ~time|id),
     data =data)
     
 # R^2 for the fixed effect of time
@@ -70,8 +70,8 @@ effectr<-NULL
 r2lmeRmat(m_CS,effectf,effectr)
 
 # Estimate the model with ARH(1) level-1 residual covariance structure:
-m_ARH<-lme(y ~ time+w2, random = ~ 1+time| CHILDID,
-    correlation = corAR1(form = ~ time|CHILDID),
+m_ARH<-lme(y ~ time+w2, random = ~ 1+time| id,
+    correlation = corAR1(form = ~ time|id),
     weights = varIdent(form = ~ 1 |time),
     data = data)
     
