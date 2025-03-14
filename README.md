@@ -1,8 +1,8 @@
 # DIMr2
 
-The functions *r2lmer*, *r2lme*, and *r2lmeRmat* compute $R^2$ statistics using the DIM (dummy indicator matrices) method in longitudinal growth models and multilevel models (Li and Ryu, manuscript under review). The functions are used along with *lme4* or *nlme* functions in R.
+The functions *r2lmer*, *r2lme*, and *r2lmeRmat* compute $R^2$ statistics using the DIM (dummy indicator matrices) method in longitudinal growth models and multilevel models (Li and Ryu). The functions are used along with *lme4* or *nlme* functions in R.
 
-Li, Z. and Ryu, E. (manuscript under review). Effect Size Measures for Longitudinal Growth Models.
+Li, Z. and Ryu, E. Effect Size Measures for Longitudinal Growth Models.
 
 # Description
 The model should be estimated using *lmer* function from *lme4* package (lme4::lmer) before using the function *r2lmer*. The model should be estimated using *lme* function from *nlme* package (nlme::lme) before using the functions *r2lme* and *r2lmeRmat*. The function *r2lmeRmat* may be used for models with one of the following level-1 residual covariance structure: Constant (single constant variance $\sigma^2$), Diag (diagonal structure with heterogeneous variances), CS (compound symmetry), CSH (compound symmetry with heterogeneous variances), AR(1) (first-order autoregressive), ARH(1) (first-order autoregressive with heterogeneous variances). 
