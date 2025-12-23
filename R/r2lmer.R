@@ -1,13 +1,16 @@
-## The function r2lmer computes R^2 statistics from the output estimated with lmer function in lme4 package (the function is written for version 1.1-28). 
-## The function requires lme4 package. 
+## Bates D, Mächler M, Bolker B, Walker S (2015). “Fitting Linear Mixed-Effects Models Using lme4.” Journal of Statistical Software, 67(1), 1–48. doi:10.18637/jss.v067.i01. 
+## The function r2lmer() computes R^2 statistics from the output estimated with the `lmer` function in the 'lme4' package (the function is written for version 1.1-38). 
+## The function requires the 'lme4' package. 
 ## The function is written for models with random intercept. The model may or may not have random slopes.  
 ## The following arguments must be provided.
 ## model: lmer output object. 
-## effectf: selected fixed effects for which the effect size is computed (if no fixed effect is selected, effectf<-NULL).
-## effectr: selected random effects for which the effect size is computed (if no fixed effect is selected, effectr<-NULL; use "(Intercept)" to specify the random intercept).
+## effectf: selected fixed effect terms for which the R^2 is computed (if no fixed effect is selected, effectf<-NULL).
+## effectr: selected random effect terms for which the R^2 is computed (if no fixed effect is selected, effectr<-NULL; use "(Intercept)" to specify the random intercept).
+
 
 r2lmer<-function(model,effectf,effectr) {
   data<-as.matrix(getME(model,"X"))
+  datar<-as.matrix(getME(model,"mmList")[[1]])
   ## fixed effects in the model
   xnames<-colnames(model@pp$X)
   ## random effects in the model
@@ -15,31 +18,35 @@ r2lmer<-function(model,effectf,effectr) {
   cid<-names(randomeff)
   xrnames<-colnames(randomeff[[cid]])
   ## covariance matrix of predictors (sigmax, sigmaxr) 
+  ## sigmax
   if(length(xnames)==1) {
     if(xnames=="(Intercept)") {
       sigmax<-0
     } else {
       sigmax<-var(data[,xnames])
     }
-  }  else if (length(xnames)==2){
-    sigmax<-var(data[,xnames[xnames!="(Intercept)"]])
-    } else {
+  } else if (length(xnames)==2 & "(Intercept)" %in% xnames){
+    sigmax<-as.matrix(var(data[,xnames[xnames!="(Intercept)"]]))
+    rownames(sigmax)<-xnames[xnames!="(Intercept)"]
+    colnames(sigmax)<-xnames[xnames!="(Intercept)"]
+  } else {
     sigmax<-cov(data[,xnames[xnames!="(Intercept)"]])
   }
+  ## sigmaxr
   if(length(xrnames)==1) {
     if(xrnames=="(Intercept)") {
       sigmaxr<-0
     } else {
-      sigmaxr<-var(data[,xrnames])
+      sigmaxr<-var(datar[,xrnames])
     }
-  } else{
-    sigmaxr<-cov(data[,xrnames])
+  } else {
+    sigmaxr<-cov(datar[,xrnames])
   }
   ## mean vector of predictors associated with level-2 random effects
   if(length(xrnames)==1) {
-    mu<-mean(data[,xrnames])
+    mu<-mean(datar[,xrnames])
   } else {
-    mu<-colMeans(data[,xrnames])
+    mu<-colMeans(datar[,xrnames])
   }
   ## parameter estimates: fixed effect coefficients (gamma)
   gammaall<-as.matrix(getME(model,"beta"))
@@ -59,6 +66,8 @@ r2lmer<-function(model,effectf,effectr) {
       }
     }
   }
+  rownames(tau)<-xrnames
+  colnames(tau)<-xrnames
   ## parameter estimates: variance of level-1 residuals
   esigma2<-allrandom[allrandom$grp=="Residual","vcov"]
   ## Dummy indicator matrix for fixed effects 
@@ -94,16 +103,31 @@ r2lmer<-function(model,effectf,effectr) {
   R2r<-varr/vartotal
   R2e<-esigma2/vartotal
   R2<-vareff/vartotal
-  value1<-matrix(c(esigma2,varf,varr,vartotal,R2f,R2r,R2e),nrow=1)
-  colnames(value1)<-c("Residual","AllFixed","AllRandom","TotalVar","R2AllFixed","R2AllRandom","R2Residual")
-  value2<-matrix(c(vartotal,vareff,R2),nrow=1)
-  colnames(value2)<-c("TotalVar","EffectVar","R2")
-  output<-list(xnames,xrnames,value1,effectf,effectr,value2)
+  value1<-c(varf,varr,esigma2,vartotal,R2f,R2r,R2e)
+  names(value1)<-c("AllFixed","AllRandom","Residual","TotalVar","R2AllFixed","R2AllRandom","R2Residual")
+  value2<-c(vartotal,vareff,R2)
+  names(value2)<-c("TotalVar","EffectVar","R2")
+  ## warning for correlated terms
+  fxrnames<-colnames(sigmax)[(colnames(sigmax) %in% effectf)]
+  fxcnames<-colnames(sigmax)[!(colnames(sigmax) %in% effectf)]
+  fx<-sigmax[fxrnames,fxcnames]
+  rx<-tau[rownames(tau)==effectr,colnames(tau)!=effectr]
+  if (!is.null(fx) && !all(fx==0)) {
+    warnf<-"The selected fixed effect term(s) are correlated with other terms."
+  } else {
+    warnf<-NA 
+  }
+  if (!is.null(rx) && !all(rx==0)) {
+    warnr<-"The selected random effect term(s) are correlated with other terms."
+  } else {
+    warnr<-NA 
+  }
+  warn<-c(warnf,warnr)
+  output<-list(xnames,xrnames,value1,effectf,effectr,value2,warn)
   names(output)<-c("All Fixed Effects in the model","All Random Effects in the model",
                    "Variance partitioning",
                    "Selected Fixed Effects","Selected Random Effects",
-                   "R2 for selected effects")
+                   "R2 for selected effects",
+                   "Warning for correlated terms")
   return(output)
 }
-
-

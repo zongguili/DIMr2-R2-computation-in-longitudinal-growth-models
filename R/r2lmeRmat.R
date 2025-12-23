@@ -1,17 +1,19 @@
-## The function r2lmeRmat computes R^2 statistics from the output estimated with lme function in nlme package (the function is written for version 3.1-155). 
-## The function requires nlme package. 
+## Pinheiro J, Bates D, R Core Team (2025). nlme: Linear and Nonlinear Mixed Effects Models. doi:10.32614/CRAN.package.nlme, R package version 3.1-168, https://CRAN.R-project.org/package=nlme.
+## The function r2lmeRmat() computes R^2 statistics from the output estimated with the `lme` function in the 'nlme' package (the function is written for version 3.1-168). 
+## The function requires the 'nlme' package. 
 ## The function is written for models with random intercept. The model may or may not have random slopes.  
 ## The function may be used with the following specifications for the level-1 residual covariance structure (R matrix): Constant, Diag, CS, CSH, AR1, ARH1. 
 ## Constant: constant variance
 ## Diag: diagonal structure with heterogeneous variances
 ## CS: Compound symmetry
 ## CSH: Compound symmetry with heterogeneous variances 
-## AR1: First-order autoregressive (1)
-## ARH1: First-order autoregressive (1) with heterogeneous variances
+## AR1: First-order autocorrelation
+## ARH1: First-order autocorrelation with heterogeneous variances
 ## The following arguments must be provided.
 ## model: lme output object. 
-## effectf: selected fixed effects for which the effect size is computed (if no fixed effect is selected, effectf<-NULL).
-## effectr: selected random effects for which the effect size is computed (if no random effect is selected, effectr<-NULL; use "(Intercept)" to specify the random intercept).
+## effectf: selected fixed effect terms for which the R^2 is computed (if no fixed effect is selected, effectf<-NULL).
+## effectr: selected random effect terms for which the R^2 is computed (if no fixed effect is selected, effectr<-NULL; use "(Intercept)" to specify the random intercept).
+
 
 r2lmeRmat<-function(model,effectf,effectr) {
   if (is.null(model$na.action)==TRUE) {
@@ -34,17 +36,21 @@ r2lmeRmat<-function(model,effectf,effectr) {
   cid<-names(model$coefficients$random)
   xrnames<-colnames(model$coefficients$random[[cid]])
   ## covariance matrix of predictors (sigmax, sigmaxr) 
+  ## sigmax
   if(length(xnames)==1) {
     if(xnames=="(Intercept)") {
       sigmax<-0
     } else {
       sigmax<-var(data[,xnames])
     }
-  } else if (length(xnames)==2){
-    sigmax<-var(data[,xnames[xnames!="(Intercept)"]])
-  }  else {
+  } else if (length(xnames)==2 & "(Intercept)" %in% xnames){
+    sigmax<-as.matrix(var(data[,xnames[xnames!="(Intercept)"]]))
+    rownames(sigmax)<-xnames[xnames!="(Intercept)"]
+    colnames(sigmax)<-xnames[xnames!="(Intercept)"]
+  } else {
     sigmax<-cov(data[,xnames[xnames!="(Intercept)"]])
   }
+  ## sigmaxr
   if(length(xrnames)==1) {
     if(xrnames=="(Intercept)") {
       sigmaxr<-0
@@ -95,7 +101,7 @@ r2lmeRmat<-function(model,effectf,effectr) {
     formula<-as.character(attributes(model$modelStruct$corStruct)$formula)[2]
     timevar<-sub(" \\|.*","",formula)
     rho<-coef(model$modelStruct$corStruct,unconstrained=F)
-    csmat<-matrix(rho,nrow=nlevels(factor(data[,timevar])),ncol=nlevels(factor(data[,timevar])))
+    csmat<-matrix(rho,nrow=nlevels(factor(data[[timevar]])),ncol=nlevels(factor(data[[timevar]])))
     diag(csmat)<-1
     esigma<-csmat*(model$sigma)^2
   } else if (Rmat=="CSH") {
@@ -103,7 +109,7 @@ r2lmeRmat<-function(model,effectf,effectr) {
     timevar<-sub(".*\\| ","",formula)
     sigmatt<-coef(model$modelStruct$varStruct,unconstrained=F,allCoef=T)*(model$sigma)
     rho<-coef(model$modelStruct$corStruct,unconstrained=F)
-    csmat<-matrix(rho,nrow=nlevels(factor(data[,timevar])),ncol=nlevels(factor(data[,timevar])))
+    csmat<-matrix(rho,nrow=nlevels(factor(data[[timevar]])),ncol=nlevels(factor(data[[timevar]])))
     diag(csmat)<-1
     esigma<-diag(sigmatt)%*%csmat%*%diag(sigmatt)
   } else if (Rmat=="AR1") {
@@ -114,7 +120,7 @@ r2lmeRmat<-function(model,effectf,effectr) {
       exponent<-abs(matrix(1:n-1,nrow=n,ncol=n,byrow=TRUE)-(1:n-1))
       phi^exponent
     }
-    armat<-ar1cor(nlevels(factor(data[,timevar])),phi)
+    armat<-ar1cor(nlevels(factor(data[[timevar]])),phi)
     esigma<-armat*(model$sigma)^2
   } else if (Rmat=="ARH1") {
     formula<-as.character(attributes(model$modelStruct$varStruct)$formula)[2]
@@ -125,7 +131,7 @@ r2lmeRmat<-function(model,effectf,effectr) {
       exponent<-abs(matrix(1:n-1,nrow=n,ncol=n,byrow=TRUE)-(1:n-1))
       phi^exponent
     }
-    armat<-ar1cor(nlevels(factor(data[,timevar])),phi)
+    armat<-ar1cor(nlevels(factor(data[[timevar]])),phi)
     esigma<-diag(sigmatt)%*%armat%*%diag(sigmatt)
   } else {
     esigma<-NULL
@@ -135,9 +141,9 @@ r2lmeRmat<-function(model,effectf,effectr) {
     residvar<-esigma2
     residvarw<-esigma2
   } else if (is.null(Rmat)==FALSE) {
-    nt<-table(model$data[,timevar])
+    nt<-table(data[,timevar])
     nt<-as.vector(nt)
-    residvar<-sum(diag(esigma))*(1/nlevels(factor(data[,timevar])))
+    residvar<-sum(diag(esigma))*(1/nlevels(factor(data[[timevar]])))
     ntw<-nt/sum(nt)
     esigmaw<-diag(sqrt(ntw))%*%esigma%*%diag(sqrt(ntw))
     residvarw<-sum(diag(esigmaw))
@@ -180,35 +186,53 @@ r2lmeRmat<-function(model,effectf,effectr) {
   R2rw<-varr/vartotalw
   R2ew<-residvarw/vartotalw
   R2w<-vareff/vartotalw
-  value1<-matrix(c(residvar,varf,varr,vartotal,R2f,R2r,R2e),nrow=1)
-  colnames(value1)<-c("Residual","AllFixed","AllRandom","TotalVar","R2AllFixed","R2AllRandom","R2Residual")
-  value2<-matrix(c(vartotal,vareff,R2),nrow=1)
-  colnames(value2)<-c("TotalVar","EffectVar","R2")
-  value1w<-matrix(c(residvarw,varf,varr,vartotalw,R2fw,R2rw,R2ew),nrow=1)
-  colnames(value1w)<-c("Residual","AllFixed","AllRandom","TotalVar","R2AllFixed","R2AllRandom","R2Residual")
-  value2w<-matrix(c(vartotalw,vareff,R2w),nrow=1)
-  colnames(value2w)<-c("TotalVar","EffectVar","R2")
+  value1<-c(varf,varr,residvar,vartotal,R2f,R2r,R2e)
+  names(value1)<-c("AllFixed","AllRandom","Residual","TotalVar","R2AllFixed","R2AllRandom","R2Residual")
+  value2<-c(vartotal,vareff,R2)
+  names(value2)<-c("TotalVar","EffectVar","R2")
+  value1w<-c(varf,varr,residvarw,vartotalw,R2fw,R2rw,R2ew)
+  names(value1w)<-c("AllFixed","AllRandom","Residual","TotalVar","R2AllFixed","R2AllRandom","R2Residual")
+  value2w<-c(vartotalw,vareff,R2w)
+  names(value2w)<-c("TotalVar","EffectVar","R2")
+  ## warning for correlated terms
+  fxrnames<-colnames(sigmax)[(colnames(sigmax) %in% effectf)]
+  fxcnames<-colnames(sigmax)[!(colnames(sigmax) %in% effectf)]
+  fx<-sigmax[fxrnames,fxcnames]
+  rx<-tau[rownames(tau)==effectr,colnames(tau)!=effectr]
+  if (!is.null(fx) && !all(fx==0)) {
+    warnf<-"The selected fixed effect term(s) are correlated with other terms."
+  } else {
+    warnf<-NA 
+  }
+  if (!is.null(rx) && !all(rx==0)) {
+    warnr<-"The selected random effect term(s) are correlated with other terms."
+  } else {
+    warnr<-NA 
+  }
+  warn<-c(warnf,warnr)
   if (Rmat=="Constant"|Rmat=="CS"|Rmat=="AR1") {
-    outputuw<-list(xnames,xrnames,Rmat,value1,effectf,effectr,value2)
-    names(outputuw)<-c("All Fixed Effects in the model","All Random Effects in the model",
+    outputuw<-list(xnames,xrnames,Rmat,value1,effectf,effectr,value2,warn)
+    names(outputuw)<-c("All Fixed Effects in the model",
+                       "All Random Effects in the model",
                        "Level-1 residual covariance structure",
                        "Variance partitioning",
                        "Selected Fixed Effects","Selected Random Effects",
-                       "R2 for selected effects")
+                       "R2 for selected effects",
+                       "Warning for correlated terms")
     output<-outputuw
   } else if (Rmat=="Diag"|Rmat=="CSH"|Rmat=="ARH1") {
-    outputw<-list(xnames,xrnames,Rmat,nt,value1,value1w,effectf,effectr,value2,value2w)
-    names(outputw)<-c("All Fixed Effects in the model","All Random Effects in the model",
+    outputw<-list(xnames,xrnames,Rmat,nt,value1,value1w,effectf,effectr,value2,value2w,warn)
+    names(outputw)<-c("All Fixed Effects in the model",
+                      "All Random Effects in the model",
                       "Level-1 residual covariance structure",
                       "Number of observations at each time point",
                       "Variance partitioning",
                       "Variance partitioning (weighted residual variance)",
                       "Selected Fixed Effects","Selected Random Effects",
                       "R2 for selected effects",
-                      "R2 for selected effects (weighted residual variance)")
+                      "R2 for selected effects (weighted residual variance)",
+                      "Warning for correlated terms")
     output<-outputw
     }
   return(output)
 }
-
-
