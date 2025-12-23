@@ -1,6 +1,6 @@
 # R functions used for computing R-squared effect size
 
-The functions *r2lmer*, *r2lme*, and *r2lmeRmat* compute $R^2$ statistics using the DIM (dummy indicator matrices) method in longitudinal growth models and multilevel models (Li and Ryu). The functions are used along with *lme4* or *nlme* functions in R.
+The functions *r2lmer()*, *r2lme()*, and *r2lmeRmat()* compute $R^2$ statistics using the DIM (dummy indicator matrices) method in longitudinal growth models and multilevel models (Li and Ryu). The functions are used along with *lme4* or *nlme* functions in R.
 
 Li, Z. and Ryu, E. Effect Size Measures for Longitudinal Growth Models.
 
