@@ -1,20 +1,20 @@
-# DIMr2
+# R functions used for computing R-squared effect size
 
 The functions *r2lmer*, *r2lme*, and *r2lmeRmat* compute $R^2$ statistics using the DIM (dummy indicator matrices) method in longitudinal growth models and multilevel models (Li and Ryu). The functions are used along with *lme4* or *nlme* functions in R.
 
 Li, Z. and Ryu, E. Effect Size Measures for Longitudinal Growth Models.
 
 # Description
-The model should be estimated using *lmer* function from *lme4* package (lme4::lmer) before using the function *r2lmer*. The model should be estimated using *lme* function from *nlme* package (nlme::lme) before using the functions *r2lme* and *r2lmeRmat*. The function *r2lmeRmat* may be used for models with one of the following level-1 residual covariance structure: Constant (single constant variance $\sigma^2$), Diag (diagonal structure with heterogeneous variances), CS (compound symmetry), CSH (compound symmetry with heterogeneous variances), AR(1) (first-order autoregressive), ARH(1) (first-order autoregressive with heterogeneous variances). 
+The model should be estimated using *lmer* function from *lme4* package (lme4::lmer) before using the function *r2lmer()*. The model should be estimated using *lme* function from *nlme* package (nlme::lme) before using the functions *r2lme()* and *r2lmeRmat()*. The function *r2lmeRmat()* may be used for models with one of the following level-1 residual covariance structure: Constant (single constant variance $\sigma^2$), Diag (diagonal structure with heterogeneous variances), CS (compound symmetry), CSH (compound symmetry with heterogeneous variances), AR(1) (first-order autoregression), ARH(1) (first-order autoregression with heterogeneous variances). The *r2lmeRmat ()* function computes $R^2$ statistics with and without weighted level-1 residual variance strucure.
 
 All three functions require three input arguments:\
-(a) model: *lmer* or *lme* output object for the estimated model,\
+(a) model: The output object for the estimated model from *lmer* or *lme*,\
 (b) effectf: selected fixed effects for which the $R^2$ is computed (effectf <- NULL if no fixed effect is selected), and\
 (c) effectr: selected random effects for which the $R^2$ is computed (effectr <- NULL if no random effect is selected; effectr <- “(Intercept)” to select the random intercept). 
 
 # Example
 
-Following are examples of using *r2lmer*, *r2lme*, and *r2lmeRmat*.
+Following are examples of using *r2lmer()*, *r2lme()*, and *r2lmeRmat()*.
 ## *r2lmer*
 ```{r,r2lmer, echo=T}
 library(lme4)
